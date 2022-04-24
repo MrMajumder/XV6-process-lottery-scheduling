@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "rand.h"
 
 struct {
   struct spinlock lock;
@@ -88,6 +89,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->ticket = 1;
+  p->tick = 0;
 
   release(&ptable.lock);
 
@@ -198,6 +201,7 @@ fork(void)
   }
   np->sz = curproc->sz;
   np->parent = curproc;
+  np->ticket = curproc->ticket;
   *np->tf = *curproc->tf;
 
   // Clear %eax so that fork returns 0 in the child.
@@ -332,6 +336,21 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    int totaltickets = 0;
+    // find total ticket no
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state == RUNNABLE) {
+        totaltickets += p->ticket;
+      }
+    }
+    int winner = 0;
+    if(totaltickets) {
+      winner = next_random() % totaltickets + 1;
+    }
+    
+    int ticketsum = 0;
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -339,16 +358,32 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      ticketsum += p->ticket;
+      if(ticketsum >= winner) {
+        c->proc = p;
+        switchuvm(p);
+        uint begtick, endtick;
+        p->state = RUNNING;
+        // get the beginning tick
+        acquire(&tickslock);
+        begtick = ticks;
+        release(&tickslock);
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        swtch(&(c->scheduler), p->context);
+        // get the ending tick
+        acquire(&tickslock);
+        endtick = ticks;
+        release(&tickslock);
+        p->tick += (endtick - begtick);
+        // cprintf("tick : %d : %d\n", p->pid, p->tick);
+        switchkvm();
+        
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        break;
+      }
+      
     }
     release(&ptable.lock);
 
@@ -531,4 +566,47 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+int
+settickets(int number)
+{
+  struct proc * p;
+  int success = -1;
+  // enable interrupt
+  sti();
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state == RUNNING) {
+      p->ticket = number;
+      success = 0;
+      break;
+    }
+  }
+  release(&ptable.lock);
+  return success;
+}
+
+int getpinfo(struct pstat * stat) {
+  struct proc * p;
+  sti();
+
+  acquire(&ptable.lock);
+  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    int i = p - ptable.proc;
+    if(p->state != UNUSED) {
+      stat->tickets[i] = p->ticket;
+      stat->pid[i] = p->pid;
+      stat->ticks[i] = p->tick;
+      stat->inuse[i] = 1;
+      // cprintf("pid : %d, name: %s\n", p->pid, p->name);
+    }
+    else {
+      stat->inuse[i] = 0;
+    }
+  }
+  release(&ptable.lock);
+  return 0;
 }

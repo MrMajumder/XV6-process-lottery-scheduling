@@ -1,3 +1,5 @@
+#include "pstat.h"
+
 struct stat;
 struct rtcdate;
 
@@ -23,6 +25,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// sets 'number' no of tickets to the calling process
+int settickets(int number);
+// get the p info of the processes
+int getpinfo(struct pstat *);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -1,3 +1,20 @@
+# Greetings
+In this repository, you will find the implementation of [**Lottery Scheduling**](https://www.geeksforgeeks.org/lottery-process-scheduling-in-operating-system/) during process scheduling. The default scheduling algorithm implemented is the [**First come first serve**](https://www.guru99.com/fcfs-scheduling.html) scheduling, which suffers from performance and turnaround time issues. You can find the details about one of the issues of FCFS, the convoy effect, [here](https://www.geeksforgeeks.org/convoy-effect-operating-systems/#:~:text=Convoy%20Effect%20is%20phenomenon%20associated,due%20to%20few%20slow%20processes.).
+
+## Files to Visit
+Since XV6 has a large codebase, it's easy to feel lost while modifying the OS. I myself were pretty lost during working with it. So, let me give a heads up on the files you should review first before trying to implement a process scheduling algorithm.
+1. `proc.c` & `proc.h` files for implementation of the algorithm. Specifically the `scheduler()` function.
+2. `sysproc.c` file for implementing a system call. 
+3. `checksched.c` file where a system call for checking the ticket count during the scheduling and verifying the implementation.
+
+## Helpful Links
+Some blogs which I read during implementing the algorithm and found helpful:
+1. [Shiddharth's Blog](https://01siddharth.blogspot.com/2018/04/implementing-lottery-scheduling-on-xv6.html)
+2. [Coup2Code's Blog](https://coup2codes.blogspot.com/2018/04/implementing-lottery-scheduling-on-xv6.html)
+
+## My implementation
+You can find the working version of my implementation in the `1705080.patch` file. By applying this patch, you will easily find all the changes I've done along with the tricks and techniques used.
+## License
 NOTE: we have stopped maintaining the x86 version of xv6, and switched
 our efforts to the RISC-V version
 (https://github.com/mit-pdos/xv6-riscv.git)
