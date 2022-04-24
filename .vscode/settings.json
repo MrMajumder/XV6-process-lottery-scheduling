@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.l": "lex",
+        "defs.h": "c",
+        "pstat.h": "c"
+    }
+}
